@@ -13,12 +13,12 @@ show_help() {
 
 # -u, --users        Функция для вывода пользователей и их домашних директорий
 list_users() {
-
+getent passwd | awk -F: '{print $1, $6}' | sort
 }
 
 # -p, --processes        Функция для вывода запущенных процессов
 list_processes() {
-
+ps -e -o pid,comm | sort -n
 }
 
 # -l, --log PATH        Функция для проверки доступа к пути
