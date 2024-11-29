@@ -45,6 +45,7 @@ eval set -- "$TEMP"
 
 LOG_FILE=""
 ERROR_FILE=""
+TEMP_ERROR_FILE=$(mktemp)
 
 while true; do
     case "$1" in
@@ -65,7 +66,7 @@ while true; do
         -e|--errors)
             ERROR_FILE="$2"
             check_path "$ERROR_FILE"
-            exec 2> "$ERROR_FILE"
+            exec 2> >(tee -a "$TEMP_ERROR_FILE" >&2)
             shift 2
             ;;
         -h|--help)
@@ -88,3 +89,15 @@ done
 if [ -n "$LOG_FILE" ]; then
     list_processes >> "$LOG_FILE"
 fi
+
+# Проверка ошибок и запись сообщения об отсутствии ошибок, если их нет
+if [ -s "$TEMP_ERROR_FILE" ]; then
+    cat "$TEMP_ERROR_FILE" >> "$ERROR_FILE"
+else
+    if [ -n "$ERROR_FILE" ]; then
+        echo "Ошибок нет" >> "$ERROR_FILE"
+    fi
+fi
+
+# Удаление временного файла ошибок
+rm -f "$TEMP_ERROR_FILE"
