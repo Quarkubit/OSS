@@ -24,10 +24,13 @@ list_processes() {
 # Функция для проверки доступа к пути
 check_path() {
     local path=$1
-        if [ ! -w "$path" ]; then
-            echo "Ошибка записи в файл $path" >&2
-            exit 1
-        fi
+    if [ ! -e "$path" ]; then
+        touch "$path"
+    fi
+    if [ ! -w "$path" ]; then
+        echo "Ошибка записи в файл $path" >&2
+        exit 1
+    fi
 }
 
 # Обработка аргументов командной строки
@@ -80,3 +83,8 @@ while true; do
             ;;
     esac
 done
+
+# Вывод в лог-файл
+if [ -n "$LOG_FILE" ]; then
+    list_processes >> "$LOG_FILE"
+fi
