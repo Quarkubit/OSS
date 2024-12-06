@@ -1,7 +1,19 @@
 #!/bin/bash
 
-LOG_FILE="logs.txt"
-ERROR_FILE="errors.txt"
+# Файл для хранения путей
+CONFIG_FILE="config.txt"
+
+# Функция для чтения значений из файла
+read_cfg() {
+    if [ -f "$CONFIG_FILE" ] && [ -n "$CONFIG_FILE" ]; then
+        source "$CONFIG_FILE"
+    else
+        LOG_FILE="logs.txt"
+        ERROR_FILE="errors.txt"
+    fi
+}
+
+read_cfg
 
 # -h, --help        Функция для вывода справки
 show_help() {
@@ -114,3 +126,11 @@ if [ -n "$ERROR_FILE" ]; then
         echo "Ошибок нет" >> "$ERROR_FILE"
     fi
 fi
+
+# Функция для записи значений в файл
+write_cfg() {
+    echo "LOG_FILE=\"$LOG_FILE\"" > "$CONFIG_FILE"
+    echo "ERROR_FILE=\"$ERROR_FILE\"" >> "$CONFIG_FILE"
+}
+
+write_cfg
