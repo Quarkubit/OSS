@@ -43,10 +43,9 @@ check_path() {
 # Обработка аргументов командной строки
 TEMP=$(getopt -o uphl:e:c --long users,processes,help,log:,errors:check -n 'SysInfoHelper.sh' -- "$@")
 if [ $? != 0 ]; then
-    echo "Ошибка в параметрах222" >&2
-    echo "-n $ERROR_FILE" >&2
+    echo "Ошибка в параметрах" >&2
     if [ -n "$ERROR_FILE" ]; then
-        echo "Ошибка в параметрах222" >> "$ERROR_FILE"
+        echo "Ошибка в параметрах" >> "$ERROR_FILE"
     fi
     show_help
     exit 1
@@ -94,7 +93,7 @@ while true; do
         *)
             echo "Ошибка в параметрах111" >&2
             if [ -n "$ERROR_FILE" ]; then
-                echo "Ошибка в параметрах111" >> "$ERROR_FILE"
+                echo "Ошибка в параметрах" >> "$ERROR_FILE"
             fi
             show_help
             exit 1
@@ -112,6 +111,6 @@ fi
 # Проверка ошибок и запись сообщения об отсутствии ошибок, если их нет
 if [ -n "$ERROR_FILE" ]; then
     if [ ! -s "$ERROR_FILE" ]; then
-        echo "Ошибок нет000" >> "$ERROR_FILE"
+        echo "Ошибок нет" >> "$ERROR_FILE"
     fi
 fi
