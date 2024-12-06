@@ -1,5 +1,8 @@
 #!/bin/bash
 
+LOG_FILE="logs.txt"
+ERROR_FILE="errors.txt"
+
 # -h, --help        Функция для вывода справки
 show_help() {
     echo "Использование: $0 [OPTIONS]"
@@ -9,6 +12,7 @@ show_help() {
     echo "  -p, --processes     Выводит перечень запущенных процессов (номер и название)"
     echo "  -l, --log PATH      Замещает вывод на экран выводом в файл по заданному пути PATH"
     echo "  -e, --errors PATH   Замещает вывод ошибок из потока stderr в файл по заданному пути PATH"
+    echo "  -c, --check		Проверить расположение файлов вывода -l и -e"
 }
 
 # -u, --users        Функция для вывода пользователей и их домашних директорий
@@ -29,23 +33,27 @@ check_path() {
     fi
     if [ ! -w "$path" ]; then
         echo "Ошибка записи в файл $path" >&2
+        if [ -n "\$ERROR_FILE" ]; then
+            echo "Ошибка записи в файл \$path" >> "\$ERROR_FILE"
+        fi
         exit 1
     fi
 }
 
 # Обработка аргументов командной строки
-TEMP=$(getopt -o uphl:e: --long users,processes,help,log:,errors: -n 'SysInfoHelper.sh' -- "$@")
+TEMP=$(getopt -o uphl:e:c --long users,processes,help,log:,errors:check -n 'SysInfoHelper.sh' -- "$@")
 if [ $? != 0 ]; then
-    echo "Ошибка в параметрах" >&2
+    echo "Ошибка в параметрах222" >&2
+    echo "-n $ERROR_FILE" >&2
+    if [ -n "$ERROR_FILE" ]; then
+        echo "Ошибка в параметрах222" >> "$ERROR_FILE"
+    fi
     show_help
     exit 1
 fi
 
 eval set -- "$TEMP"
 
-LOG_FILE=""
-ERROR_FILE=""
-TEMP_ERROR_FILE=$(mktemp)
 
 while true; do
     case "$1" in
@@ -66,24 +74,35 @@ while true; do
         -e|--errors)
             ERROR_FILE="$2"
             check_path "$ERROR_FILE"
-            exec 2> >(tee -a "$TEMP_ERROR_FILE" >&2)
-            shift 2
+            exec 2> >(tee -a "$ERROR_FILE" >&2)
+            echo "$ERROR_FILE"
+	    shift 2
             ;;
         -h|--help)
             show_help
             shift
             ;;
+	-c|--check)
+	    echo "$ERROR_FILE"
+	    echo "$LOG_FILE"
+	    shift
+	    ;;
         --)
             shift
             break
             ;;
         *)
-            echo "Ошибка в параметрах" >&2
+            echo "Ошибка в параметрах111" >&2
+            if [ -n "$ERROR_FILE" ]; then
+                echo "Ошибка в параметрах111" >> "$ERROR_FILE"
+            fi
             show_help
             exit 1
             ;;
     esac
 done
+
+
 
 # Вывод в лог-файл
 if [ -n "$LOG_FILE" ]; then
@@ -91,13 +110,8 @@ if [ -n "$LOG_FILE" ]; then
 fi
 
 # Проверка ошибок и запись сообщения об отсутствии ошибок, если их нет
-if [ -s "$TEMP_ERROR_FILE" ]; then
-    cat "$TEMP_ERROR_FILE" >> "$ERROR_FILE"
-else
-    if [ -n "$ERROR_FILE" ]; then
-        echo "Ошибок нет" >> "$ERROR_FILE"
+if [ -n "$ERROR_FILE" ]; then
+    if [ ! -s "$ERROR_FILE" ]; then
+        echo "Ошибок нет000" >> "$ERROR_FILE"
     fi
 fi
-
-# Удаление временного файла ошибок
-rm -f "$TEMP_ERROR_FILE"
