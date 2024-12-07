@@ -52,19 +52,39 @@ check_path() {
     fi
 }
 
+error_check() {
+
+	# Проверка количества строк в файле ошибок
+	LINE_COUNT=$(wc -l < "$ERROR_FILE")
+	if [ "$LINE_COUNT" -gt 1 ]; then
+	    # Удаление фразы "Ошибок нет", если она существует
+	    sed -i "/Ошибок нет/d" "$ERROR_FILE"
+	fi
+}
+
+# Проверка количества строк в файле ошибок
+error_check
+
 # Обработка аргументов командной строки
-TEMP=$(getopt -o uphl:e:c --long users,processes,help,log:,errors:check -n 'SysInfoHelper.sh' -- "$@")
+TEMP=$(getopt -o uphl:e:c --long users,processes,help,log:,errors:,check -n 'SysInfoHelper.sh' -- "$@")
 if [ $? != 0 ]; then
     echo "Ошибка в параметрах" >&2
     if [ -n "$ERROR_FILE" ]; then
         echo "Ошибка в параметрах" >> "$ERROR_FILE"
     fi
     show_help
+    error_check
     exit 1
 fi
 
 eval set -- "$TEMP"
 
+COMMAND=$(echo "$TEMP" | sed 's/ --$//')
+
+# Запись использованной команды в лог-файл
+if [ -n "$LOG_FILE" ]; then
+    echo "$0 $COMMAND" >> "$LOG_FILE"
+fi
 
 while true; do
     case "$1" in
@@ -86,7 +106,7 @@ while true; do
             ERROR_FILE="$2"
             check_path "$ERROR_FILE"
             exec 2> >(tee -a "$ERROR_FILE" >&2)
-            echo "$ERROR_FILE"
+            #echo "$ERROR_FILE"
 	    shift 2
             ;;
         -h|--help)
@@ -115,16 +135,9 @@ done
 
 
 
-# Вывод в лог-файл
-if [ -n "$LOG_FILE" ]; then
-    list_processes >> "$LOG_FILE"
-fi
-
-# Проверка ошибок и запись сообщения об отсутствии ошибок, если их нет
-if [ -n "$ERROR_FILE" ]; then
-    if [ ! -s "$ERROR_FILE" ]; then
-        echo "Ошибок нет" >> "$ERROR_FILE"
-    fi
+#Проверка ошибок и запись сообщения об отсутствии ошибок, если их нет
+if [ ! -s "$ERROR_FILE" ]; then
+    echo "Ошибок нет" >> "$ERROR_FILE"
 fi
 
 # Функция для записи значений в файл
