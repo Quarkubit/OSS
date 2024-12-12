@@ -1,19 +1,8 @@
 #!/bin/bash
 
-# Файл для хранения путей
-CONFIG_FILE="config.txt"
-
-# Функция для чтения значений из файла
-read_cfg() {
-    if [ -f "$CONFIG_FILE" ] && [ -n "$CONFIG_FILE" ]; then
-        source "$CONFIG_FILE"
-    else
-        LOG_FILE="logs.txt"
-        ERROR_FILE="errors.txt"
-    fi
-}
-
-read_cfg
+# Инициализация переменных для путей
+log_PATH=""
+error_PATH=""
 
 # -h, --help        Функция для вывода справки
 show_help() {
@@ -24,7 +13,6 @@ show_help() {
     echo "  -p, --processes     Выводит перечень запущенных процессов (номер и название)"
     echo "  -l, --log PATH      Замещает вывод на экран выводом в файл по заданному пути PATH"
     echo "  -e, --errors PATH   Замещает вывод ошибок из потока stderr в файл по заданному пути PATH"
-    echo "  -c, --check		Проверить расположение файлов вывода -l и -e"
 }
 
 # -u, --users        Функция для вывода пользователей и их домашних директорий
@@ -52,21 +40,22 @@ check_path() {
     fi
 }
 
-error_check() {
-
-	# Проверка количества строк в файле ошибок
-	LINE_COUNT=$(wc -l < "$ERROR_FILE")
-	if [ "$LINE_COUNT" -gt 1 ]; then
-	    # Удаление фразы "Ошибок нет", если она существует
-	    sed -i "/Ошибок нет/d" "$ERROR_FILE"
-	fi
+# Функция перенаправления стандартного вывода
+r_stdout() {
+    local log_PATH="$1"
+    check_path "$log_PATH"
+    exec > "$log_PATH"
 }
 
-# Проверка количества строк в файле ошибок
-error_check
+# Функция перенаправления стандартного потока ошибок
+r_stderr() {
+    local error_PATH="$1"
+    check_path "$error_PATH"
+    exec 2>"$error_PATH"
+}
 
 # Обработка аргументов командной строки
-TEMP=$(getopt -o uphl:e:c --long users,processes,help,log:,errors:,check -n 'SysInfoHelper.sh' -- "$@")
+TEMP=$(getopt -o uphl:e: --long users,processes,help,log:,errors: -n 'SysInfoHelper.sh' -- "$@")
 if [ $? != 0 ]; then
     echo "Ошибка в параметрах" >&2
     if [ -n "$ERROR_FILE" ]; then
@@ -98,26 +87,18 @@ while true; do
             ;;
         -l|--log)
             LOG_FILE="$2"
-            check_path "$LOG_FILE"
-            exec > "$LOG_FILE"
+            r_stdout "$log_PATH"
             shift 2
             ;;
         -e|--errors)
             ERROR_FILE="$2"
-            check_path "$ERROR_FILE"
-            exec 2> >(tee -a "$ERROR_FILE" >&2)
-            #echo "$ERROR_FILE"
+            r_stderr "$error_PATH"
 	    shift 2
             ;;
         -h|--help)
             show_help
             shift
             ;;
-	-c|--check)
-	    echo "$ERROR_FILE"
-	    echo "$LOG_FILE"
-	    shift
-	    ;;
         --)
             shift
             break
@@ -136,14 +117,15 @@ done
 
 
 #Проверка ошибок и запись сообщения об отсутствии ошибок, если их нет
-if [ ! -s "$ERROR_FILE" ]; then
-    echo "Ошибок нет" >> "$ERROR_FILE"
-fi
+error_check() {
 
-# Функция для записи значений в файл
-write_cfg() {
-    echo "LOG_FILE=\"$LOG_FILE\"" > "$CONFIG_FILE"
-    echo "ERROR_FILE=\"$ERROR_FILE\"" >> "$CONFIG_FILE"
+	# Проверка количества строк в файле ошибок
+	LINE_COUNT=$(wc -l < "$ERROR_FILE")
+	if [ "$LINE_COUNT" -gt 1 ]; then
+	    # Удаление фразы "Ошибок нет", если она существует
+	    sed -i "/Ошибок нет/d" "$ERROR_FILE"
+	fi
 }
 
-write_cfg
+# Проверка количества строк в файле ошибок
+error_check
